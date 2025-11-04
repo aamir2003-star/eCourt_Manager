@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Scale, Bell, User, LogOut, Menu, X } from 'lucide-react';
 import api from '../services/api';
+import NotificationCenter from './NotificationCenter ';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -85,12 +86,7 @@ const Navbar = () => {
                   className="relative p-2 rounded-lg transition"
                   style={{ color: '#6b7280' }}
                 >
-                  <Bell className="h-6 w-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                      {unreadCount}
-                    </span>
-                  )}
+                  
                 </button>
 
                 {/* Notification Dropdown */}
@@ -153,6 +149,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
+               <NotificationCenter />
 
               {/* User Menu */}
               <div className="flex items-center space-x-3 px-4 py-2 rounded-lg" style={{ backgroundColor: 'rgba(134, 121, 105, 0.1)' }}>

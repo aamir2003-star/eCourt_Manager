@@ -1,7 +1,12 @@
-// models/Case.js
+// models/Case.js - UPDATED
 const mongoose = require('mongoose');
+
 const caseSchema = new mongoose.Schema({
   case_title: {
+    type: String,
+    required: true
+  },
+  case_type: {
     type: String,
     required: true
   },
@@ -9,44 +14,81 @@ const caseSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  fir_copy: String,
-  police_station: String,
-  staff: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  client: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  case_type: {
-    type: String,
-    required: true
-  },
-  case_reg_date: {
-    type: Date,
-    default: Date.now
-  },
   status: {
     type: String,
     enum: ['pending', 'active', 'closed', 'on-hold'],
     default: 'pending'
   },
+  
+  // 🔐 NEW: Access Control Fields
+  classification: {
+    type: String,
+    enum: ['public', 'confidential', 'classified'],
+    default: 'public'
+  },
+  
+  // Staff members assigned to this case
+  assigned_staff: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  
+  // Case owner/creator
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  // Primary lawyer/staff handling the case
+  primary_lawyer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  
+  case_reg_date: {
+    type: Date,
+    default: Date.now
+  },
+  
+  police_station: String,
+  city: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'City'
+  },
+  
   result: {
     type: String,
     enum: ['pending', 'won', 'lost', 'settled'],
     default: 'pending'
   },
-  state: {
+  
+  documents: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'State'
+    ref: 'Document'
+  }],
+  
+  hearings: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hearing'
+  }],
+  
+  // Audit trail
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
-  city: {
+  updated_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'City'
+    ref: 'User'
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
+
+// Index for better query performance
+caseSchema.index({ client: 1, status: 1 });
+caseSchema.index({ assigned_staff: 1 });
+caseSchema.index({ classification: 1 });
 
 module.exports = mongoose.model('Case', caseSchema);

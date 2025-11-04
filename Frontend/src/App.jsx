@@ -5,6 +5,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { CaseProvider } from './context/CaseContext';
 
+//New Routes Added
+import AllCases from './pages/admin/AllCases';
+import AdminReports from './pages/admin/AdminReports';
+import StaffMyCases from './pages/staff/CaseDetails';
+import StaffHearings from './pages/staff/HearingSchedule';
+import StaffAppointments from './pages/staff/StaffAppointments';
+import StaffDocuments from './pages/staff/StaffDocuments ';
+
 // Layout Components
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -18,7 +26,7 @@ import Register from './pages/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageUsers from './pages/admin/ManageUsers';
 import ManageStaff from './pages/admin/ManageStaff';
-import AdminReports from './pages/admin/AdminReports';
+
 import ManageCaseRequests from './pages/admin/ManageCaseRequests';
 
 // Staff Pages
@@ -111,6 +119,44 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              // Admin Routes
+<Route path="/admin/cases" element={
+  <ProtectedRoute allowedRoles={['admin']}>
+    <DashboardLayout><AllCases /></DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/admin/reports" element={
+  <ProtectedRoute allowedRoles={['admin']}>
+    <DashboardLayout><AdminReports /></DashboardLayout>
+  </ProtectedRoute>
+} />
+
+// Staff Routes
+<Route path="/staff/cases" element={
+  <ProtectedRoute allowedRoles={['staff']}>
+    <DashboardLayout><StaffMyCases /></DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/staff/hearings" element={
+  <ProtectedRoute allowedRoles={['staff']}>
+    <DashboardLayout><StaffHearings /></DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/staff/appointments" element={
+  <ProtectedRoute allowedRoles={['staff']}>
+    <DashboardLayout><StaffAppointments /></DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/staff/documents" element={
+  <ProtectedRoute allowedRoles={['staff']}>
+    <DashboardLayout><StaffDocuments /></DashboardLayout>
+  </ProtectedRoute>
+} />
               <Route
                 path="/admin/case-requests"
                 element={

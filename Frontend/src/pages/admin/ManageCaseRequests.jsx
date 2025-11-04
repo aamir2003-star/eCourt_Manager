@@ -16,10 +16,27 @@ const ManageCaseRequests = () => {
   const [showModal, setShowModal] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedLawyer, setSelectedLawyer] = useState('');
+const [lawyers, setLawyers] = useState([]);
 
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  const fetchLawyers = async () => {
+  try {
+    const response = await api.get('/users?role=staff');
+    setLawyers(response.data.data);
+  } catch (error) {
+    console.error('Error fetching lawyers:', error);
+  }
+};
+
+
+
+  useEffect(() => {
+  fetchLawyers();
+}, []);
 
   useEffect(() => {
     filterRequests();
@@ -54,38 +71,34 @@ const ManageCaseRequests = () => {
     setFilteredRequests(filtered);
   };
 
-  const handleAction = async (requestId, status) => {
-    setActionLoading(true);
-    try {
-      await api.put(`/case-requests/${requestId}`, {
-        status,
-        admin_notes: adminNotes
-      });
+  // Update handleAction function
+const handleAction = async (requestId, status) => {
+  if (status === 'approved' && !selectedLawyer) {
+    alert('Please assign a lawyer to this case');
+    return;
+  }
 
-      const request = requests.find(r => r._id === requestId);
-      if (request) {
-        await api.post('/notifications', {
-          user: request.client._id,
-          title: `Case Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-          message: `Your case request "${request.case_title}" has been ${status}`,
-          type: 'case',
-          link: '/client/case-requests'
-        });
-      }
+  setActionLoading(true);
+  try {
+    await api.put(`/case-requests/${requestId}`, {
+      status,
+      admin_notes: adminNotes,
+      assign_to_staff: status === 'approved' ? selectedLawyer : null
+    });
 
-      fetchRequests();
-      setShowModal(false);
-      setSelectedRequest(null);
-      setAdminNotes('');
-      alert(`Request ${status} successfully!`);
-    } catch (error) {
-      console.error('Error updating request:', error);
-      alert('Failed to update request');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
+    fetchRequests();
+    setShowModal(false);
+    setSelectedRequest(null);
+    setAdminNotes('');
+    setSelectedLawyer('');
+    alert(`Request ${status} successfully!`);
+  } catch (error) {
+    console.error('Error updating request:', error);
+    alert('Failed to update request');
+  } finally {
+    setActionLoading(false);
+  }
+};
   const openModal = (request) => {
     setSelectedRequest(request);
     setAdminNotes(request.admin_notes || '');
@@ -366,6 +379,27 @@ const ManageCaseRequests = () => {
                   placeholder="Add notes for this request..."
                 />
               </div>
+              {selectedRequest?.status === 'pending' && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Assign to Lawyer *
+    </label>
+    <select
+      value={selectedLawyer}
+      onChange={(e) => setSelectedLawyer(e.target.value)}
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+      required
+    >
+      <option value="">Select a lawyer</option>
+      {lawyers.map((lawyer) => (
+        <option key={lawyer._id} value={lawyer._id}>
+          {lawyer.f_name} {lawyer.l_name} 
+          {lawyer.qualification && ` - ${lawyer.qualification}`}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
 
               {/* Actions */}
               {selectedRequest.status === 'pending' && (

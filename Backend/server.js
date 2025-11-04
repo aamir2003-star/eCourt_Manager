@@ -194,6 +194,126 @@ io.on('connection', (socket) => {
     io.emit('online_users', Array.from(onlineUsers.values()));
   });
 
+  // Add to your server.js (where Socket.io is initialized)
+
+// At the end of the socket connection handler, add these events:
+
+// ========== Real-time Notification Events ==========
+
+socket.on('case_request_created', async (data) => {
+  console.log('📝 Case request created:', data);
+  
+  // Notify admin
+  io.to('role_admin').emit('new_case_request', {
+    caseId: data.caseId,
+    case_title: data.case_title,
+    client: data.client,
+    timestamp: new Date()
+  });
+});
+
+socket.on('case_request_approved', async (data) => {
+  console.log('✅ Case request approved:', data);
+  
+  // Notify client
+  io.to(`user_${data.clientId}`).emit('case_approved', {
+    caseId: data.caseId,
+    case_title: data.case_title,
+    message: 'Your case request has been approved'
+  });
+  
+  // Broadcast to all
+  io.emit('notification', {
+    type: 'case_approved',
+    message: `Case "${data.case_title}" has been approved`,
+    priority: 'high'
+  });
+});
+
+socket.on('case_request_rejected', async (data) => {
+  console.log('❌ Case request rejected:', data);
+  
+  // Notify client
+  io.to(`user_${data.clientId}`).emit('case_rejected', {
+    caseId: data.caseId,
+    case_title: data.case_title,
+    message: 'Your case request has been rejected',
+    reason: data.reason
+  });
+});
+
+socket.on('staff_assigned_to_case', async (data) => {
+  console.log('👤 Staff assigned to case:', data);
+  
+  // Notify assigned staff
+  data.staffIds.forEach(staffId => {
+    io.to(`user_${staffId}`).emit('case_assigned', {
+      caseId: data.caseId,
+      case_title: data.case_title,
+      message: 'You have been assigned to a new case'
+    });
+  });
+});
+
+socket.on('case_status_changed', async (data) => {
+  console.log('📊 Case status changed:', data);
+  
+  // Notify client
+  io.to(`user_${data.clientId}`).emit('status_update', {
+    caseId: data.caseId,
+    case_title: data.case_title,
+    status: data.status,
+    message: `Case status changed to: ${data.status}`
+  });
+  
+  // Notify assigned staff
+  data.staffIds?.forEach(staffId => {
+    io.to(`user_${staffId}`).emit('case_status_update', {
+      caseId: data.caseId,
+      case_title: data.case_title,
+      status: data.status
+    });
+  });
+});
+
+socket.on('document_uploaded', async (data) => {
+  console.log('📄 Document uploaded:', data);
+  
+  // Notify relevant users
+  if (data.caseId) {
+    io.to(`case_${data.caseId}`).emit('document_added', {
+      documentId: data.documentId,
+      case_title: data.case_title,
+      fileName: data.fileName,
+      message: `New document uploaded: ${data.fileName}`
+    });
+  }
+});
+
+socket.on('hearing_scheduled', async (data) => {
+  console.log('📅 Hearing scheduled:', data);
+  
+  // Notify client
+  io.to(`user_${data.clientId}`).emit('hearing_scheduled', {
+    hearingId: data.hearingId,
+    case_title: data.case_title,
+    hearing_date: data.hearing_date,
+    message: `Hearing scheduled for ${data.hearing_date}`
+  });
+  
+  // Notify staff
+  data.staffIds?.forEach(staffId => {
+    io.to(`user_${staffId}`).emit('hearing_scheduled', {
+      hearingId: data.hearingId,
+      case_title: data.case_title,
+      hearing_date: data.hearing_date
+    });
+  });
+});
+
+
+
+
   // ========== Error Handler ==========
 
   socket.on('error', (error) => {

@@ -1,58 +1,34 @@
+// routes/notification.js - CORRECTED VERSION
 const express = require('express');
 const router = express.Router();
-const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
+const {
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  getUnreadCount,
+  clearAllNotifications
+} = require('../controllers/notificationController');
 
-// Get user notifications
-router.get('/', protect, async (req, res) => {
-  try {
-    const notifications = await Notification.find({ user: req.user.id })
-      .sort('-created_at')
-      .limit(50);
+// ✅ IMPORTANT: Generic routes MUST come AFTER specific routes
 
-    const unreadCount = await Notification.countDocuments({ 
-      user: req.user.id, 
-      read: false 
-    });
+// Get unread count (SPECIFIC - must be BEFORE :notificationId)
+router.get('/unread-count', protect, getUnreadCount);
 
-    res.json({ 
-      success: true, 
-      data: notifications,
-      unreadCount 
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// Clear all notifications (SPECIFIC - must be BEFORE :notificationId)
+router.delete('/clear-all', protect, clearAllNotifications);
 
-// Mark as read
-router.put('/:id/read', protect, async (req, res) => {
-  try {
-    const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      { read: true },
-      { new: true }
-    );
+// Get all notifications for logged-in user (GENERIC)
+router.get('/', protect, getNotifications);
 
-    res.json({ success: true, data: notification });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// Mark all notifications as read (SPECIFIC - must be BEFORE :notificationId)
+router.put('/mark-all-read', protect, markAllAsRead);
 
-// Mark all as read
-router.put('/read-all', protect, async (req, res) => {
-  try {
-    await Notification.updateMany(
-      { user: req.user.id, read: false },
-      { read: true }
-    );
+// Mark notification as read (SPECIFIC)
+router.put('/:notificationId/read', protect, markAsRead);
 
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// Delete notification (GENERIC with ID)
+router.delete('/:notificationId', protect, deleteNotification);
 
 module.exports = router;
-

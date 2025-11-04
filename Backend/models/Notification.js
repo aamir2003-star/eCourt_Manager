@@ -1,33 +1,86 @@
+// models/Notification.js - NEW
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-  user: {
+  recipient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
+  
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  
+  type: {
+    type: String,
+    enum: [
+      'case_request',
+      'case_approved',
+      'case_rejected',
+      'case_assigned',
+      'case_updated',
+      'document_uploaded',
+      'hearing_scheduled',
+      'hearing_updated',
+      'appointment_booked',
+      'appointment_confirmed',
+      'feedback_received',
+      'system'
+    ],
+    required: true
+  },
+  
   title: {
     type: String,
     required: true
   },
+  
   message: {
     type: String,
     required: true
   },
-  type: {
-    type: String,
-    enum: ['case', 'hearing', 'appointment', 'document', 'system'],
-    default: 'system'
+  
+  // Related entities
+  relatedCase: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Case'
   },
-  link: String,
-  read: {
+  
+  relatedDocument: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Document'
+  },
+  
+  relatedHearing: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hearing'
+  },
+  
+  // Notification status
+  isRead: {
     type: Boolean,
     default: false
   },
-  created_at: {
-    type: Date,
-    default: Date.now
+  
+  readAt: Date,
+  
+  // Action link
+  actionUrl: String,
+  
+  // Priority
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'urgent'],
+    default: 'medium'
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
+
+// Indexes
+notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ type: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

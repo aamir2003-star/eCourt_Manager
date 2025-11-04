@@ -66,7 +66,8 @@ const RequestCase = () => {
         navigate('/client/case-requests');
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit request');
+     
+      setError(err.response?.data?.message || 'Case request failed. Please try again.');
     } finally {
       setLoading(false);
     }
