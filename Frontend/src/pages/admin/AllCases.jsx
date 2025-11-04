@@ -1,7 +1,7 @@
-// src/pages/admin/AllCases.jsx - UPDATED WITH LIGHT THEME
+// src/pages/admin/AllCases.jsx - UPDATED WITH CASE DETAILS MODAL
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Plus, Eye, Edit, Trash2, Briefcase, AlertCircle } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Edit, Trash2, AlertCircle, X, Calendar, User, FileText, Users, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
 
 const AllCases = () => {
@@ -12,6 +12,8 @@ const AllCases = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchCases();
@@ -64,6 +66,18 @@ const AllCases = () => {
         alert('Failed to delete case');
       }
     }
+  };
+
+  // ✅ NEW: Open case details modal
+  const openCaseModal = (caseItem) => {
+    setSelectedCase(caseItem);
+    setShowModal(true);
+  };
+
+  // ✅ NEW: Close modal
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedCase(null);
   };
 
   const caseTypes = ['Civil', 'Criminal', 'Family', 'Commercial', 'Property', 'Labour', 'Other'];
@@ -242,7 +256,7 @@ const AllCases = () => {
                       {caseItem.client?.f_name} {caseItem.client?.l_name}
                     </td>
                     <td className="px-6 py-4 text-sm" style={{ color: '#6b7280' }}>
-                      {caseItem.staff?.f_name} {caseItem.staff?.l_name}
+                      {caseItem.primary_lawyer?.f_name} {caseItem.primary_lawyer?.l_name}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -260,11 +274,12 @@ const AllCases = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex space-x-3">
+                        {/* ✅ NEW: Eye button opens modal */}
                         <button
-                          onClick={() => navigate(`/admin/cases/${caseItem._id}`)}
+                          onClick={() => openCaseModal(caseItem)}
                           className="transition hover:opacity-70"
                           style={{ color: '#867969' }}
-                          title="View"
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -293,6 +308,131 @@ const AllCases = () => {
           </div>
         )}
       </div>
+
+      {/* ✅ NEW: Case Details Modal */}
+      {showModal && selectedCase && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#f5f1ed' }}>
+            {/* Modal Header */}
+            <div className="sticky top-0 flex justify-between items-center p-6" style={{ backgroundColor: '#f5f1ed', borderBottomWidth: '1px', borderBottomColor: 'rgba(134, 121, 105, 0.2)' }}>
+              <h2 className="text-2xl font-bold" style={{ color: '#1f2937' }}>{selectedCase.case_title}</h2>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-gray-200 rounded-full transition"
+              >
+                <X className="h-5 w-5" style={{ color: '#6b7280' }} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Case Status & Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-1" style={{ color: '#6b7280' }}>Status</p>
+                  <span
+                    className="inline-block px-3 py-1 rounded-full text-xs font-medium"
+                    style={{
+                      backgroundColor: getStatusColor(selectedCase.status).bg,
+                      color: getStatusColor(selectedCase.status).text
+                    }}
+                  >
+                    {selectedCase.status.toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1" style={{ color: '#6b7280' }}>Case Type</p>
+                  <span className="inline-block px-3 py-1 rounded text-xs font-medium" style={{ backgroundColor: 'rgba(134, 121, 105, 0.1)', color: '#867969' }}>
+                    {selectedCase.case_type}
+                  </span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="text-sm font-medium mb-2 flex items-center" style={{ color: '#1f2937' }}>
+                  <FileText className="h-4 w-4 mr-2" style={{ color: '#867969' }} />
+                  Description
+                </h3>
+                <p style={{ color: '#6b7280' }}>{selectedCase.description}</p>
+              </div>
+
+              {/* Client Information */}
+              <div>
+                <h3 className="text-sm font-medium mb-3 flex items-center" style={{ color: '#1f2937' }}>
+                  <User className="h-4 w-4 mr-2" style={{ color: '#867969' }} />
+                  Client Information
+                </h3>
+                <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: 'rgba(134, 121, 105, 0.08)' }}>
+                  <p><span style={{ color: '#6b7280' }}>Name:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{selectedCase.client?.f_name} {selectedCase.client?.l_name}</span></p>
+                  <p><span style={{ color: '#6b7280' }}>Email:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{selectedCase.client?.email}</span></p>
+                  <p><span style={{ color: '#6b7280' }}>Phone:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{selectedCase.client?.phone || 'N/A'}</span></p>
+                </div>
+              </div>
+
+              {/* Assigned Lawyer */}
+              {selectedCase.primary_lawyer && (
+                <div>
+                  <h3 className="text-sm font-medium mb-3 flex items-center" style={{ color: '#1f2937' }}>
+                    <Users className="h-4 w-4 mr-2" style={{ color: '#867969' }} />
+                    Assigned Lawyer
+                  </h3>
+                  <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: 'rgba(134, 121, 105, 0.08)' }}>
+                    <p><span style={{ color: '#6b7280' }}>Name:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{selectedCase.primary_lawyer?.f_name} {selectedCase.primary_lawyer?.l_name}</span></p>
+                    <p><span style={{ color: '#6b7280' }}>Email:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{selectedCase.primary_lawyer?.email}</span></p>
+                    <p><span style={{ color: '#6b7280' }}>Role:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{selectedCase.primary_lawyer?.role}</span></p>
+                  </div>
+                </div>
+              )}
+
+              {/* Important Dates */}
+              <div>
+                <h3 className="text-sm font-medium mb-3 flex items-center" style={{ color: '#1f2937' }}>
+                  <Calendar className="h-4 w-4 mr-2" style={{ color: '#867969' }} />
+                  Important Dates
+                </h3>
+                <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: 'rgba(134, 121, 105, 0.08)' }}>
+                  <p><span style={{ color: '#6b7280' }}>Case Registration:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{new Date(selectedCase.case_reg_date).toLocaleDateString()}</span></p>
+                  {selectedCase.accepted_at && (
+                    <p><span style={{ color: '#6b7280' }}>Accepted On:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{new Date(selectedCase.accepted_at).toLocaleDateString()}</span></p>
+                  )}
+                  <p><span style={{ color: '#6b7280' }}>Last Updated:</span> <span className="font-medium ml-2" style={{ color: '#1f2937' }}>{new Date(selectedCase.updatedAt).toLocaleDateString()}</span></p>
+                </div>
+              </div>
+
+              {/* Result */}
+              {selectedCase.result && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center" style={{ color: '#1f2937' }}>
+                    <CheckCircle className="h-4 w-4 mr-2" style={{ color: '#867969' }} />
+                    Result
+                  </h3>
+                  <span className="inline-block px-3 py-1 rounded text-xs font-medium" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                    {selectedCase.result.toUpperCase()}
+                  </span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-6" style={{ borderTopWidth: '1px', borderTopColor: 'rgba(134, 121, 105, 0.2)' }}>
+               
+                <button
+                  onClick={closeModal}
+                  className="flex-1 py-3 rounded-lg transition font-medium"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderWidth: '1px',
+                    borderColor: 'rgba(134, 121, 105, 0.2)',
+                    color: '#1f2937'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

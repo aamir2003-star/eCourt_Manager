@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { CaseProvider } from './context/CaseContext';
+import NotFound from './pages/NotFound';
 
 //New Routes Added
 import AllCases from './pages/admin/AllCases';
@@ -313,7 +314,7 @@ function App() {
               />
 
               {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+                 <Route path="*" element={<NotFound />} />
             </Routes>
           </CaseProvider>
         </SocketProvider>

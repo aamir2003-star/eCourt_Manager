@@ -1,4 +1,4 @@
-// models/Case.js - UPDATED
+// models/Case.js - CORRECTED WITH ACCEPTANCE FIELDS
 const mongoose = require('mongoose');
 
 const caseSchema = new mongoose.Schema({
@@ -20,7 +20,7 @@ const caseSchema = new mongoose.Schema({
     default: 'pending'
   },
   
-  // 🔐 NEW: Access Control Fields
+  // 🔐 Access Control Fields
   classification: {
     type: String,
     enum: ['public', 'confidential', 'classified'],
@@ -73,6 +73,18 @@ const caseSchema = new mongoose.Schema({
     ref: 'Hearing'
   }],
   
+  // ✅ NEW: Acceptance tracking fields
+  accepted_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  
+  accepted_at: {
+    type: Date,
+    default: null
+  },
+  
   // Audit trail
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
@@ -90,5 +102,6 @@ const caseSchema = new mongoose.Schema({
 caseSchema.index({ client: 1, status: 1 });
 caseSchema.index({ assigned_staff: 1 });
 caseSchema.index({ classification: 1 });
+caseSchema.index({ accepted_by: 1 }); // ✅ NEW: Index for accepted cases
 
 module.exports = mongoose.model('Case', caseSchema);

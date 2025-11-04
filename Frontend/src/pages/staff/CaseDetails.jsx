@@ -1,21 +1,43 @@
-// src/pages/staff/CaseDetails.jsx - UPDATED WITH LIGHT THEME
+// src/pages/staff/CaseDetails.jsx - UPDATED
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Briefcase, Plus, AlertCircle } from 'lucide-react';
+import { Search, Filter, Briefcase, Plus, AlertCircle, CheckCircle } from 'lucide-react';
 import { useCase } from '../../context/CaseContext';
 import CaseCard from '../../components/CaseCard';
+import api from '../../services/api';
 
 const CaseDetails = () => {
   const navigate = useNavigate();
-  const { cases, loading } = useCase();
+  const { cases, loading, refetch } = useCase(); // ✅ Make sure refetch is available
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [acceptingCaseId, setAcceptingCaseId] = useState(null);
 
   const filteredCases = cases.filter(c => {
     const matchesSearch = c.case_title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // ✅ NEW: Handle accept case
+  const handleAcceptCase = async (caseId) => {
+    if (window.confirm('Do you want to accept this case?')) {
+      try {
+        setAcceptingCaseId(caseId);
+        await api.put(`/api/cases/${caseId}/accept`);
+        alert('Case accepted successfully!');
+        // Refresh cases
+        if (refetch) {
+          refetch();
+        }
+      } catch (error) {
+        console.error('Error accepting case:', error);
+        alert('Failed to accept case: ' + (error.response?.data?.message || error.message));
+      } finally {
+        setAcceptingCaseId(null);
+      }
+    }
+  };
 
   const getStatBorder = (type) => {
     switch(type) {
@@ -143,7 +165,7 @@ const CaseDetails = () => {
         </div>
       </div>
 
-      {/* Cases Grid */}
+      {/* Cases Grid with Accept Button */}
       <div>
         {loading ? (
           <div className="text-center py-12">
@@ -158,12 +180,82 @@ const CaseDetails = () => {
               </div>
             </div>
             <p className="text-lg" style={{ color: '#9ca3af' }}>No cases assigned yet</p>
-            <p className="mt-2" style={{ color: '#9ca3af' }}>Cases assigned to you will appear here</p>
+            <p className="text-sm mt-2" style={{ color: '#9ca3af' }}>Cases assigned to you will appear here</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCases.map((caseItem) => (
-              <CaseCard key={caseItem._id} caseData={caseItem} role="staff" />
+              <div
+                key={caseItem._id}
+                className="rounded-lg shadow-md overflow-hidden"
+                style={{ backgroundColor: '#f5f1ed' }}
+              >
+                {/* Card Content */}
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-semibold text-lg" style={{ color: '#1f2937' }}>
+                      {caseItem.case_title}
+                    </h3>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: caseItem.status === 'pending' 
+                          ? 'rgba(249, 191, 36, 0.1)'
+                          : caseItem.status === 'active'
+                          ? 'rgba(16, 185, 129, 0.1)'
+                          : 'rgba(107, 114, 128, 0.1)',
+                        color: caseItem.status === 'pending'
+                          ? '#f59e0b'
+                          : caseItem.status === 'active'
+                          ? '#10b981'
+                          : '#6b7280'
+                      }}
+                    >
+                      {caseItem.status}
+                    </span>
+                  </div>
+
+                  <p className="text-sm mb-3" style={{ color: '#6b7280' }}>
+                    {caseItem.description?.substring(0, 100)}...
+                  </p>
+
+                  <div className="space-y-2 mb-4 text-sm" style={{ color: '#9ca3af' }}>
+                    <p><strong>Type:</strong> {caseItem.case_type}</p>
+                    <p><strong>Client:</strong> {caseItem.client?.f_name} {caseItem.client?.l_name}</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2">
+                    {/* Accept Button - Only show if pending */}
+                    {caseItem.status === 'pending' && (
+                      <button
+                        onClick={() => handleAcceptCase(caseItem._id)}
+                        disabled={acceptingCaseId === caseItem._id}
+                        className="w-full text-white py-2 rounded-lg transition disabled:opacity-50 font-medium flex items-center justify-center space-x-1"
+                        style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        <span>{acceptingCaseId === caseItem._id ? 'Accepting...' : 'Accept Case'}</span>
+                      </button>
+                    )}
+
+                    {/* View Details Button */}
+                    <button
+                      onClick={() => navigate(`/staff/cases/${caseItem._id}`)}
+                      className="w-full px-4 py-2 rounded-lg transition"
+                      style={{
+                        backgroundColor: '#ffffff',
+                        borderWidth: '1px',
+                        borderColor: 'rgba(134, 121, 105, 0.2)',
+                        color: '#867969',
+                        fontWeight: '500'
+                      }}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}

@@ -62,6 +62,7 @@ const Login = () => {
           <div className="text-center mb-8 animate-fade-in-down">
             <div className="flex justify-center mb-6">
               <div className="relative group">
+                <Link to="/">
                 {/* Outer glow ring */}
                 <div className="absolute inset-0 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse" style={{ backgroundColor: '#C9C7BA' }}></div>
                 
@@ -70,7 +71,10 @@ const Login = () => {
                   <Scale className="h-14 w-14" style={{ color: '#29292B' }} />
                   <Sparkles className="absolute -top-2 -right-2 h-6 w-6 animate-spin-slow" style={{ color: '#C9C7BA' }} />
                 </div>
+                </Link>
               </div>
+                
+                
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-2 tracking-tight" style={{ color: '#C9C7BA' }}>
@@ -85,9 +89,9 @@ const Login = () => {
           {/* Login Card */}
           <div className="backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-10 animate-fade-in-up" style={{ backgroundColor: 'rgba(201, 199, 186, 0.08)', borderWidth: '1px', borderColor: 'rgba(201, 199, 186, 0.2)' }}>
             {/* Welcome Text */}
-            <div className="mb-8">
+            <div className="mb-8 gap-3 flex flex-col items-center ">
               <h2 className="text-2xl font-bold mb-1" style={{ color: '#C9C7BA' }}>
-                Welcome Back! 👋
+                Welcome Back! 
               </h2>
               <p className="text-sm" style={{ color: 'rgba(201, 199, 186, 0.6)' }}>
                 Sign in to continue to your account
@@ -199,12 +203,14 @@ const Login = () => {
             {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full" style={{ borderTopWidth: '1px', borderColor: 'rgba(201, 199, 186, 0.2)' }}></div>
+                <div className="w-full" style={{ borderTopWidth: '1px', borderColor: 'rgba(201, 199, 186, 0.2)' }}>
+                  
+                </div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 backdrop-blur-sm" style={{ backgroundColor: 'rgba(201, 199, 186, 0.08)', color: 'rgba(201, 199, 186, 0.6)' }}>
+                <h1 className="px-4 backdrop-blur-sm" style={{ backgroundColor: 'rgba(201, 199, 186, 0.08)', color: 'rgba(201, 199, 186, 0.6)' }}>
                   New to eCourt?
-                </span>
+                </h1>
               </div>
             </div>
 

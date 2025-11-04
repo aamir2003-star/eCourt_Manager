@@ -1,9 +1,8 @@
-// controllers/caseController.js - CORRECTED VERSION
+// controllers/caseController.js - FIXED getCase function (COMPLETE FILE)
 const Case = require('../models/Case');
 const Notification = require('../models/Notification');
-const User = require('../models/User'); // ✅ ADD THIS IMPORT
+const User = require('../models/User');
 
-// Get socket.io instance safely
 let io;
 try {
   io = require('../server').io;
@@ -19,16 +18,11 @@ exports.getCases = async (req, res) => {
     const userRole = req.user.role;
     let query = {};
 
-    // Admin sees all cases
     if (userRole === 'admin') {
       // No filter
-    }
-    // Client sees only their cases
-    else if (userRole === 'client') {
+    } else if (userRole === 'client') {
       query.client = userId;
-    }
-    // Staff sees only assigned cases
-    else if (userRole === 'staff') {
+    } else if (userRole === 'staff') {
       query.$or = [
         { assigned_staff: userId },
         { primary_lawyer: userId }
@@ -56,12 +50,14 @@ exports.getCases = async (req, res) => {
   }
 };
 
-// Get single case (with access control)
+// ✅ FIXED: Get single case (with better access control)
 exports.getCase = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
     const userRole = req.user.role;
+
+    console.log(`Getting case ${id} for user ${userId} with role ${userRole}`);
 
     const caseData = await Case.findById(id)
       .populate('client', 'f_name l_name email phone')
@@ -72,35 +68,54 @@ exports.getCase = async (req, res) => {
       .populate('city', 'city_name state');
 
     if (!caseData) {
+      console.log(`Case ${id} not found`);
       return res.status(404).json({
         success: false,
         message: 'Case not found'
       });
     }
 
-    // Check access
+    // ✅ FIXED: Better access control with null checks
+    let hasAccess = false;
+
     if (userRole === 'admin') {
-      // Admin can access all
+      // Admins can access all cases
+      hasAccess = true;
+      console.log(`Admin access granted`);
     } else if (userRole === 'client') {
-      if (caseData.client._id.toString() !== userId.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied. This case does not belong to you.'
-        });
+      // Clients can access only their own cases
+      if (caseData.client && caseData.client._id.toString() === userId.toString()) {
+        hasAccess = true;
+        console.log(`Client access granted - case belongs to them`);
+      } else {
+        console.log(`Client access denied - case doesn't belong to them`);
       }
     } else if (userRole === 'staff') {
+      // Staff can access cases they are assigned to
       const isAssigned = caseData.assigned_staff && caseData.assigned_staff.some(
         staff => staff._id.toString() === userId.toString()
       );
+      
       const isPrimaryLawyer = caseData.primary_lawyer && 
         caseData.primary_lawyer._id.toString() === userId.toString();
 
-      if (!isAssigned && !isPrimaryLawyer) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied. You are not assigned to this case.'
-        });
+      if (isAssigned) {
+        hasAccess = true;
+        console.log(`Staff access granted - assigned to case`);
+      } else if (isPrimaryLawyer) {
+        hasAccess = true;
+        console.log(`Staff access granted - is primary lawyer`);
+      } else {
+        console.log(`Staff access denied - not assigned or primary lawyer`);
       }
+    }
+
+    if (!hasAccess) {
+      console.log(`Access denied for user ${userId} to case ${id}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You do not have permission to view this case.'
+      });
     }
 
     res.json({
@@ -120,25 +135,22 @@ exports.getCase = async (req, res) => {
 // Create case (for clients & admin)
 exports.createCase = async (req, res) => {
   try {
-    // Allow both admin and client to create cases
     const newCase = new Case({
       ...req.body,
       created_by: req.user._id,
-      client: req.body.client || req.user._id // ✅ FIXED: Set client
+      client: req.body.client || req.user._id
     });
 
     await newCase.save();
 
-    // ✅ FIXED: Notify admin about new case request
     try {
-      // Get all admin users
       const admins = await User.find({ role: 'admin' });
       
       if (admins && admins.length > 0) {
         const notificationData = admins.map(admin => ({
-          recipient: admin._id,  // ✅ Must include recipient
+          recipient: admin._id,
           sender: req.user._id,
-          type: 'case_request',  // ✅ Use valid enum value
+          type: 'case_request',
           title: 'New Case Request',
           message: `New case request: ${newCase.case_title}`,
           relatedCase: newCase._id,
@@ -148,7 +160,6 @@ exports.createCase = async (req, res) => {
 
         await Notification.insertMany(notificationData);
 
-        // Emit Socket.io event to admins
         if (io) {
           io.to('role_admin').emit('new_case_request', {
             caseId: newCase._id,
@@ -160,10 +171,8 @@ exports.createCase = async (req, res) => {
       }
     } catch (notificationError) {
       console.error('Notification creation error:', notificationError);
-      // Don't fail the case creation if notification fails
     }
 
-    // ✅ FIXED: Also notify assigned staff if provided
     if (req.body.assigned_staff && req.body.assigned_staff.length > 0) {
       try {
         await Notification.insertMany(
@@ -179,7 +188,6 @@ exports.createCase = async (req, res) => {
           }))
         );
 
-        // Emit Socket.io event
         if (io) {
           io.to('role_staff').emit('case_assigned', {
             caseId: newCase._id,
@@ -233,10 +241,8 @@ exports.updateCase = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    // Notify if status changed
     if (oldCase.status !== req.body.status) {
       try {
-        // Notify client
         if (updatedCase.client) {
           await Notification.create({
             recipient: updatedCase.client,
@@ -250,7 +256,6 @@ exports.updateCase = async (req, res) => {
           });
         }
 
-        // Notify assigned staff
         if (updatedCase.assigned_staff && updatedCase.assigned_staff.length > 0) {
           await Notification.insertMany(
             updatedCase.assigned_staff.map(staffId => ({
@@ -265,7 +270,6 @@ exports.updateCase = async (req, res) => {
           );
         }
 
-        // Emit Socket.io event
         if (io) {
           io.emit('case_status_updated', {
             caseId: updatedCase._id,
@@ -365,7 +369,6 @@ exports.assignStaff = async (req, res) => {
       });
     }
 
-    // Notify assigned staff
     if (assigned_staff && assigned_staff.length > 0) {
       try {
         await Notification.insertMany(
@@ -381,7 +384,6 @@ exports.assignStaff = async (req, res) => {
           }))
         );
 
-        // Emit Socket.io event
         if (io) {
           assigned_staff.forEach(staffId => {
             io.to(`user_${staffId}`).emit('case_assigned', {
@@ -424,7 +426,6 @@ exports.uploadDocument = async (req, res) => {
       });
     }
 
-    // Your document upload logic here
     res.json({
       success: true,
       message: 'Document uploaded successfully',
@@ -456,7 +457,6 @@ exports.scheduleHearing = async (req, res) => {
       });
     }
 
-    // Your hearing schedule logic here
     res.json({
       success: true,
       message: 'Hearing scheduled successfully',
@@ -471,6 +471,84 @@ exports.scheduleHearing = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to schedule hearing',
+      error: error.message
+    });
+  }
+};
+
+// ✅ ACCEPT CASE FUNCTION
+exports.acceptCase = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const caseData = await Case.findById(id);
+
+    if (!caseData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Case not found'
+      });
+    }
+
+    const isAssigned = caseData.assigned_staff && caseData.assigned_staff.some(
+      staffId => staffId.toString() === userId.toString()
+    );
+
+    if (!isAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not assigned to this case'
+      });
+    }
+
+    if (caseData.status === 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Case is already accepted'
+      });
+    }
+
+    caseData.status = 'active';
+    caseData.accepted_by = userId;
+    caseData.accepted_at = new Date();
+    caseData.updated_by = userId;
+    await caseData.save();
+
+    try {
+      await Notification.create({
+        recipient: caseData.client,
+        sender: userId,
+        type: 'case_updated',
+        title: 'Case Accepted ✅',
+        message: `Your case "${caseData.case_title}" has been accepted by ${req.user.f_name} ${req.user.l_name}`,
+        relatedCase: caseData._id,
+        actionUrl: `/client/cases/${caseData._id}`,
+        priority: 'high'
+      });
+
+      if (io) {
+        io.to(`user_${caseData.client}`).emit('case_accepted', {
+          caseId: caseData._id,
+          case_title: caseData.case_title,
+          acceptedBy: `${req.user.f_name} ${req.user.l_name}`,
+          message: 'Your case has been accepted'
+        });
+      }
+    } catch (notificationError) {
+      console.error('Notification error:', notificationError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Case accepted successfully',
+      data: caseData
+    });
+  } catch (error) {
+    console.error('Accept case error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to accept case',
       error: error.message
     });
   }

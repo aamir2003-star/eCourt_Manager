@@ -1,4 +1,4 @@
-// src/pages/admin/ManageCaseRequests.jsx - UPDATED WITH LIGHT THEME
+// src/pages/admin/ManageCaseRequests.jsx - CORRECTED & COMPLETE
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, CheckCircle, XCircle, Eye, 
@@ -11,97 +11,104 @@ const ManageCaseRequests = () => {
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending'); // ✅ FIXED: Default to 'pending'
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedLawyer, setSelectedLawyer] = useState('');
-const [lawyers, setLawyers] = useState([]);
+  const [lawyers, setLawyers] = useState([]);
 
+  // ✅ FIXED: Fetch lawyers on mount
   useEffect(() => {
+    fetchLawyers();
     fetchRequests();
   }, []);
 
   const fetchLawyers = async () => {
-  try {
-    const response = await api.get('/users?role=staff');
-    setLawyers(response.data.data);
-  } catch (error) {
-    console.error('Error fetching lawyers:', error);
-  }
-};
-
-
-
-  useEffect(() => {
-  fetchLawyers();
-}, []);
-
-  useEffect(() => {
-    filterRequests();
-  }, [searchTerm, statusFilter, requests]);
+    try {
+      const response = await api.get('/users?role=staff');
+      setLawyers(response.data.data);
+    } catch (error) {
+      console.error('Error fetching lawyers:', error);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
       const response = await api.get('/case-requests');
       setRequests(response.data.data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching requests:', error);
-    } finally {
       setLoading(false);
     }
   };
 
+  // ✅ FIXED: Better filtering logic
+  useEffect(() => {
+    filterRequests();
+  }, [searchTerm, statusFilter, requests]);
+
   const filterRequests = () => {
     let filtered = requests;
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(r => r.status === statusFilter);
+    // ✅ FIXED: Filter by status (show only selected status)
+    if (statusFilter === 'pending') {
+      filtered = filtered.filter(r => r.status === 'pending');
+    } else if (statusFilter === 'approved') {
+      filtered = filtered.filter(r => r.status === 'approved');
+    } else if (statusFilter === 'rejected') {
+      filtered = filtered.filter(r => r.status === 'rejected');
     }
+    // if 'all', show everything
 
+    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(r =>
         r.case_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.case_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.client?.f_name.toLowerCase().includes(searchTerm.toLowerCase())
+        (r.client?.f_name && r.client.f_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.client?.l_name && r.client.l_name.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     setFilteredRequests(filtered);
   };
 
-  // Update handleAction function
-const handleAction = async (requestId, status) => {
-  if (status === 'approved' && !selectedLawyer) {
-    alert('Please assign a lawyer to this case');
-    return;
-  }
+  const handleAction = async (requestId, status) => {
+    // ✅ FIXED: Only check lawyer if approving
+    if (status === 'approved' && !selectedLawyer) {
+      alert('Please assign a lawyer to this case');
+      return;
+    }
 
-  setActionLoading(true);
-  try {
-    await api.put(`/case-requests/${requestId}`, {
-      status,
-      admin_notes: adminNotes,
-      assign_to_staff: status === 'approved' ? selectedLawyer : null
-    });
+    setActionLoading(true);
+    try {
+      await api.put(`/case-requests/${requestId}`, {
+        status,
+        admin_notes: adminNotes,
+        assign_to_staff: status === 'approved' ? selectedLawyer : null
+      });
 
-    fetchRequests();
-    setShowModal(false);
-    setSelectedRequest(null);
-    setAdminNotes('');
-    setSelectedLawyer('');
-    alert(`Request ${status} successfully!`);
-  } catch (error) {
-    console.error('Error updating request:', error);
-    alert('Failed to update request');
-  } finally {
-    setActionLoading(false);
-  }
-};
+      fetchRequests();
+      setShowModal(false);
+      setSelectedRequest(null);
+      setAdminNotes('');
+      setSelectedLawyer('');
+      alert(`Request ${status} successfully!`);
+    } catch (error) {
+      console.error('Error updating request:', error);
+      alert('Failed to update request: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const openModal = (request) => {
     setSelectedRequest(request);
     setAdminNotes(request.admin_notes || '');
+    setSelectedLawyer('');
     setShowModal(true);
   };
 
@@ -152,15 +159,27 @@ const handleAction = async (requestId, status) => {
           <p className="text-sm" style={{ color: '#6b7280' }}>Total Requests</p>
           <p className="text-2xl font-bold mt-1" style={{ color: '#1f2937' }}>{stats.total}</p>
         </div>
-        <div className="rounded-lg shadow-md p-4" style={{ backgroundColor: '#f5f1ed', borderLeftWidth: '4px', borderLeftColor: '#d97706' }}>
+        <div 
+          className="rounded-lg shadow-md p-4 cursor-pointer transform hover:-translate-y-1 transition"
+          onClick={() => setStatusFilter('pending')}
+          style={{ backgroundColor: '#f5f1ed', borderLeftWidth: '4px', borderLeftColor: '#d97706', opacity: statusFilter === 'pending' ? 1 : 0.6 }}
+        >
           <p className="text-sm" style={{ color: '#6b7280' }}>Pending</p>
           <p className="text-2xl font-bold mt-1" style={{ color: '#1f2937' }}>{stats.pending}</p>
         </div>
-        <div className="rounded-lg shadow-md p-4" style={{ backgroundColor: '#f5f1ed', borderLeftWidth: '4px', borderLeftColor: '#10b981' }}>
+        <div 
+          className="rounded-lg shadow-md p-4 cursor-pointer transform hover:-translate-y-1 transition"
+          onClick={() => setStatusFilter('approved')}
+          style={{ backgroundColor: '#f5f1ed', borderLeftWidth: '4px', borderLeftColor: '#10b981', opacity: statusFilter === 'approved' ? 1 : 0.6 }}
+        >
           <p className="text-sm" style={{ color: '#6b7280' }}>Approved</p>
           <p className="text-2xl font-bold mt-1" style={{ color: '#1f2937' }}>{stats.approved}</p>
         </div>
-        <div className="rounded-lg shadow-md p-4" style={{ backgroundColor: '#f5f1ed', borderLeftWidth: '4px', borderLeftColor: '#ef4444' }}>
+        <div 
+          className="rounded-lg shadow-md p-4 cursor-pointer transform hover:-translate-y-1 transition"
+          onClick={() => setStatusFilter('rejected')}
+          style={{ backgroundColor: '#f5f1ed', borderLeftWidth: '4px', borderLeftColor: '#ef4444', opacity: statusFilter === 'rejected' ? 1 : 0.6 }}
+        >
           <p className="text-sm" style={{ color: '#6b7280' }}>Rejected</p>
           <p className="text-2xl font-bold mt-1" style={{ color: '#1f2937' }}>{stats.rejected}</p>
         </div>
@@ -280,13 +299,13 @@ const handleAction = async (requestId, status) => {
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm" style={{ color: '#6b7280' }}>
                           <Calendar className="h-4 w-4 mr-1" />
-                          {new Date(request.created_at).toLocaleDateString()}
+                          {new Date(request.createdAt || request.created_at).toLocaleDateString()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => openModal(request)}
-                          className="flex items-center space-x-1 transition-colors"
+                          className="flex items-center space-x-1 transition-colors hover:opacity-70"
                           style={{ color: '#867969' }}
                         >
                           <Eye className="h-4 w-4" />
@@ -356,9 +375,38 @@ const handleAction = async (requestId, status) => {
                 <div className="rounded-lg p-4 space-y-2" style={{ backgroundColor: 'rgba(134, 121, 105, 0.08)' }}>
                   <p><span style={{ color: '#6b7280' }}>Name:</span> <span className="font-medium" style={{ color: '#1f2937' }}>{selectedRequest.client?.f_name} {selectedRequest.client?.l_name}</span></p>
                   <p><span style={{ color: '#6b7280' }}>Email:</span> <span className="font-medium" style={{ color: '#1f2937' }}>{selectedRequest.client?.email}</span></p>
-                  <p><span style={{ color: '#6b7280' }}>Contact:</span> <span className="font-medium" style={{ color: '#1f2937' }}>{selectedRequest.client?.contact}</span></p>
+                  <p><span style={{ color: '#6b7280' }}>Contact:</span> <span className="font-medium" style={{ color: '#1f2937' }}>{selectedRequest.client?.contact || 'N/A'}</span></p>
                 </div>
               </div>
+
+              {/* Lawyer Assignment - Only for pending */}
+              {selectedRequest.status === 'pending' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#1f2937' }}>
+                    Assign to Lawyer *
+                  </label>
+                  <select
+                    value={selectedLawyer}
+                    onChange={(e) => setSelectedLawyer(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg outline-none"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      borderWidth: '1px',
+                      borderColor: 'rgba(134, 121, 105, 0.2)',
+                      color: '#1f2937'
+                    }}
+                    required
+                  >
+                    <option value="">Select a lawyer</option>
+                    {lawyers.map((lawyer) => (
+                      <option key={lawyer._id} value={lawyer._id}>
+                        {lawyer.f_name} {lawyer.l_name} 
+                        {lawyer.qualification && ` - ${lawyer.qualification}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Admin Notes */}
               <div>
@@ -379,27 +427,6 @@ const handleAction = async (requestId, status) => {
                   placeholder="Add notes for this request..."
                 />
               </div>
-              {selectedRequest?.status === 'pending' && (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Assign to Lawyer *
-    </label>
-    <select
-      value={selectedLawyer}
-      onChange={(e) => setSelectedLawyer(e.target.value)}
-      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-      required
-    >
-      <option value="">Select a lawyer</option>
-      {lawyers.map((lawyer) => (
-        <option key={lawyer._id} value={lawyer._id}>
-          {lawyer.f_name} {lawyer.l_name} 
-          {lawyer.qualification && ` - ${lawyer.qualification}`}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
 
               {/* Actions */}
               {selectedRequest.status === 'pending' && (
@@ -407,7 +434,7 @@ const handleAction = async (requestId, status) => {
                   <button
                     onClick={() => handleAction(selectedRequest._id, 'approved')}
                     disabled={actionLoading}
-                    className="flex-1 text-white py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                    className="flex-1 text-white py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center space-x-2 font-medium"
                     style={{ backgroundColor: '#10b981' }}
                   >
                     <CheckCircle className="h-5 w-5" />
@@ -416,7 +443,7 @@ const handleAction = async (requestId, status) => {
                   <button
                     onClick={() => handleAction(selectedRequest._id, 'rejected')}
                     disabled={actionLoading}
-                    className="flex-1 text-white py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                    className="flex-1 text-white py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center space-x-2 font-medium"
                     style={{ backgroundColor: '#ef4444' }}
                   >
                     <XCircle className="h-5 w-5" />
@@ -427,7 +454,7 @@ const handleAction = async (requestId, status) => {
 
               <button
                 onClick={() => setShowModal(false)}
-                className="w-full py-3 rounded-lg transition"
+                className="w-full py-3 rounded-lg transition font-medium"
                 style={{
                   backgroundColor: '#ffffff',
                   borderWidth: '1px',

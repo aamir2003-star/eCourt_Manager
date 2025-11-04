@@ -113,7 +113,7 @@ const Home = () => {
               className="group px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1 inline-flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg, #C9C7BA 0%, #b3b1a0 100%)', color: '#29292B' }}
             >
-              Start Free Trial
+              Register Now
               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
