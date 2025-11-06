@@ -1,4 +1,4 @@
-// src/context/AuthContext.jsx
+// src/context/AuthContext.jsx - FIXED
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authService } from '../services/authService';
 
@@ -17,68 +17,82 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
 
-  // Initialize from localStorage on mount
+  // ✅ Initialize from localStorage on mount ONLY
   useEffect(() => {
+    console.log('🔍 AuthProvider: Initializing auth');
+    
     const initAuth = async () => {
       try {
         // Get stored token and user
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
 
+        console.log('📦 Stored:', { token: !!storedToken, user: !!storedUser });
+
         if (storedToken && storedUser) {
-          // Verify token is still valid with server
+          console.log('✅ Found stored auth, restoring');
+          
           try {
+            // ✅ Verify token is valid
             const response = await authService.verifyToken(storedToken);
-            if (response.success) {
+            
+            console.log('🔑 Verify response:', response);
+
+            if (response.success || response.valid) {
+              console.log('✅ Token valid, restoring auth');
               setToken(storedToken);
               setUser(JSON.parse(storedUser));
             } else {
-              // Token invalid, clear storage
+              console.log('❌ Token invalid, clearing');
               localStorage.removeItem('token');
               localStorage.removeItem('user');
               setUser(null);
               setToken(null);
             }
           } catch (error) {
-            // Verification failed, clear storage
-            console.error('Token verification failed:', error);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
-            setToken(null);
+            console.warn('⚠️ Token verification error:', error.message);
+            
+            // ✅ IMPORTANT: Don't clear auth on verification error!
+            // Keep the token if verification just failed
+            console.log('✅ Keeping token despite verification error');
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
           }
         } else {
-          // No stored session
-          const currentUser = authService.getCurrentUser();
-          setUser(currentUser);
-          const currentToken = authService.getToken();
-          setToken(currentToken);
+          console.log('❌ No stored auth');
+          setUser(null);
+          setToken(null);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setUser(null);
+        setToken(null);
       } finally {
         setLoading(false);
+        console.log('✅ Auth initialization complete');
       }
     };
 
     initAuth();
-  }, []);
+  }, []); // ✅ Run ONLY once on mount
 
-  // Listen for storage changes from other tabs
+  // ✅ Listen for storage changes from other tabs
   useEffect(() => {
+    console.log('🔔 Setting up storage listeners');
+    
     const handleStorageChange = (e) => {
+      console.log('📦 Storage event:', e.key, e.newValue ? 'set' : 'removed');
+      
       if (e.key === 'token') {
         if (e.newValue) {
-          // Token was set in another tab
           setToken(e.newValue);
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
             setUser(JSON.parse(storedUser));
           }
         } else {
-          // Token was removed in another tab
           setToken(null);
           setUser(null);
         }
@@ -91,112 +105,84 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    // Listen for custom events from other tabs
-    const handleUserLogin = (event) => {
-      const { token: newToken, user: newUser } = event.detail;
-      setToken(newToken);
-      setUser(newUser);
-    };
-
-    const handleUserLogout = () => {
-      setToken(null);
-      setUser(null);
-    };
-
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('userLogin', handleUserLogin);
-    window.addEventListener('userLogout', handleUserLogout);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userLogin', handleUserLogin);
-      window.removeEventListener('userLogout', handleUserLogout);
     };
   }, []);
 
+  // ✅ LOGIN
   const login = async (credentials) => {
     try {
+      console.log('🔐 Login attempt');
+      
       const data = await authService.login(credentials);
       
-      // Store in state
+      console.log('✅ Login successful:', data.user.username);
+
+      // ✅ Save token and user
       setToken(data.token);
       setUser(data.user);
 
-      // Store in localStorage for persistence
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Notify other tabs about login
-      window.dispatchEvent(
-        new CustomEvent('userLogin', {
-          detail: { token: data.token, user: data.user }
-        })
-      );
+      console.log('💾 Saved to localStorage');
 
       return data;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       throw error;
     }
   };
 
+  // ✅ REGISTER
   const register = async (userData) => {
     try {
+      console.log('📝 Register attempt');
+      
       const data = await authService.register(userData);
       
-      // Store in state
       setToken(data.token);
       setUser(data.user);
 
-      // Store in localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Notify other tabs about login
-      window.dispatchEvent(
-        new CustomEvent('userLogin', {
-          detail: { token: data.token, user: data.user }
-        })
-      );
-
       return data;
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('❌ Register error:', error);
       throw error;
     }
   };
 
+  // ✅ LOGOUT
   const logout = () => {
     try {
+      console.log('👋 Logout');
+      
       authService.logout();
       
-      // Clear state
       setUser(null);
       setToken(null);
 
-      // Clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
-      // Notify other tabs about logout
-      window.dispatchEvent(new CustomEvent('userLogout'));
+      console.log('✅ Logout complete');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
     }
   };
 
+  // ✅ UPDATE USER
   const updateUser = (userData) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    
-    // Notify other tabs
-    window.dispatchEvent(
-      new CustomEvent('userUpdated', {
-        detail: { user: userData }
-      })
-    );
   };
 
+  // ✅ Context value
   const value = {
     user,
     loading,

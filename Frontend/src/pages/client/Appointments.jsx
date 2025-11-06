@@ -243,7 +243,7 @@ const Appointments = () => {
                   </div>
 
                   {appointment.staff && (
-                    <div style={{ color: '#1f2937' }} className="pt-2" style={{ borderTopWidth: '1px', borderTopColor: 'rgba(134, 121, 105, 0.2)' }}>
+                    <div style={{ color: '#1f2937',  borderTopWidth: '1px', borderTopColor: 'rgba(134, 121, 105, 0.2)' }} className="pt-2" >
                       <p className="text-sm" style={{ color: '#6b7280' }}>With</p>
                       <p className="font-semibold">{appointment.staff.f_name} {appointment.staff.l_name}</p>
                     </div>

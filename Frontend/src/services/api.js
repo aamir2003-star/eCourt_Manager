@@ -1,45 +1,57 @@
-// src/services/api.js
+// src/services/api.js - CORRECT VERSION
 import axios from 'axios';
 
-
-const API_URL = 'http://localhost:5000/api';
-
-let api = axios.create({
-  baseURL: API_URL,
+const api = axios.create({
+  baseURL: 'http://localhost:5000/api',
+  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
-// Add token to requests
+// ✅ Request interceptor - add token
 api.interceptors.request.use(
   (config) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error accessing localStorage:', error);
+    const token = localStorage.getItem('token');
+    
+    console.log('[API] Request:', config.method.toUpperCase(), config.url);
+    console.log('[API] Token:', token ? 'present' : 'missing');
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('[API] Added token to headers');
     }
+    
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('[API] Request error:', error);
+    return Promise.reject(error);
+  }
 );
 
-// Handle response errors
+// ✅ Response interceptor - handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('[API] Response:', response.status, response.config.url);
+    return response;
+  },
   (error) => {
+    console.error('[API] Response error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message,
+      url: error.config?.url,
+    });
+
+    // ❌ 401 - Token expired or invalid
     if (error.response?.status === 401) {
-      try {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      } catch (err) {
-        console.error('Error clearing localStorage:', err);
-      }
+      console.warn('[API] 401 - Clearing auth');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Redirect to login
+      window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );

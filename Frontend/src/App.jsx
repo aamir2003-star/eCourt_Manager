@@ -27,7 +27,7 @@ import Register from './pages/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageUsers from './pages/admin/ManageUsers';
 import ManageStaff from './pages/admin/ManageStaff';
-
+import Inquiries from './pages/admin/Inquiries';
 import ManageCaseRequests from './pages/admin/ManageCaseRequests';
 
 // Staff Pages
@@ -116,6 +116,17 @@ function App() {
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout>
                       <ManageUsers />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/inquiries"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout>
+                      <Inquiries />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

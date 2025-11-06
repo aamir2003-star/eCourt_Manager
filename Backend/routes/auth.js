@@ -10,7 +10,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/me', protect, getMe);
 router.put('/update-profile', protect, upload.single('photo'), updateProfile);
-router.get('/verify', protect, verifyToken);
+router.get('/verify-token', protect, verifyToken);
 
 module.exports = router;
 

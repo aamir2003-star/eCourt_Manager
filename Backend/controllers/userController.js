@@ -6,7 +6,13 @@ exports.getAllUsers = async (req, res) => {
   try {
     console.log('📊 Fetching all users for admin dashboard');
     
-    const users = await User.find()
+    let query = {};
+    if (req.query.role) {
+      const roles = req.query.role.split(',');
+      query.role = { $in: roles };
+    }
+
+    const users = await User.find(query)
       .select('-password')
       .sort({ date_of_reg: -1 });
 
