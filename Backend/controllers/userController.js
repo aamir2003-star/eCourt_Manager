@@ -122,11 +122,37 @@ exports.deleteUser = async (req, res) => {
       success: true,
       message: 'User deleted successfully'
     });
-  } catch (error) {
     console.error('❌ ERROR in deleteUser:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
+      error: error.message
+    });
+  }
+  catch (error) {
+    console.error('❌ ERROR in deleteUser:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// Get all lawyers
+exports.getLawyers = async (req, res) => {
+  try {
+    const lawyers = await User.find({ role: 'lawyer' }).select('-password');
+
+    res.status(200).json({
+      success: true,
+      count: lawyers.length,
+      data: lawyers
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching lawyers',
       error: error.message
     });
   }

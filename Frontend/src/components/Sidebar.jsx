@@ -33,6 +33,7 @@ const Sidebar = () => {
   const staffLinks = [
     { to: '/staff/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/staff/cases', icon: Briefcase, label: 'My Cases' },
+    { to: '/staff/calendar', icon: Calendar, label: 'My Calendar' },
     { to: '/staff/hearings', icon: Calendar, label: 'Hearings' },
     { to: '/staff/appointments', icon: Calendar, label: 'Appointments' },
     { to: '/staff/documents', icon: FileText, label: 'Documents' }
@@ -43,6 +44,7 @@ const Sidebar = () => {
     { to: '/client/request-case', icon: Plus, label: 'Request Case' },
     { to: '/client/case-requests', icon: Clock, label: 'My Requests' },
     { to: '/client/cases', icon: Briefcase, label: 'My Cases' },
+    { to: '/client/calendar', icon: Calendar, label: 'My Calendar' },
     { to: '/client/appointments', icon: Calendar, label: 'Appointments' },
     { to: '/client/feedback', icon: MessageSquare, label: 'Feedback' }
   ];

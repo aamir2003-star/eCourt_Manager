@@ -25,7 +25,7 @@ const RequestCase = () => {
 
   const fetchLawyers = async () => {
     try {
-      const response = await api.get('/users?role=staff');
+      const response = await api.get('/users/lawyers');
       setLawyers(response.data.data);
     } catch (error) {
       console.error('Error fetching lawyers:', error);

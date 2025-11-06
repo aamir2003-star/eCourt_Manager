@@ -444,6 +444,8 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
+const CaseHearing = require('../models/CaseHearing');
+
 // Schedule hearing
 exports.scheduleHearing = async (req, res) => {
   try {
@@ -457,14 +459,22 @@ exports.scheduleHearing = async (req, res) => {
       });
     }
 
+    const newHearing = new CaseHearing({
+      case: caseId,
+      hearing_date,
+      remarks
+    });
+
+    await newHearing.save();
+
+    await Case.findByIdAndUpdate(caseId, {
+      $push: { hearings: newHearing._id }
+    });
+
     res.json({
       success: true,
       message: 'Hearing scheduled successfully',
-      data: {
-        caseId,
-        hearing_date,
-        remarks
-      }
+      data: newHearing
     });
   } catch (error) {
     console.error('Schedule hearing error:', error);
@@ -539,16 +549,40 @@ exports.acceptCase = async (req, res) => {
       console.error('Notification error:', notificationError);
     }
 
+    });
+  }
+};
+
+exports.getMyHearings = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = req.user.role;
+    let query = {};
+
+    if (userRole === 'client') {
+      query.client = userId;
+    } else if (userRole === 'staff') {
+      query.$or = [
+        { assigned_staff: userId },
+        { primary_lawyer: userId }
+      ];
+    }
+
+    const cases = await Case.find(query).select('_id');
+    const caseIds = cases.map(c => c._id);
+
+    const hearings = await CaseHearing.find({ case: { $in: caseIds } }).populate('case', 'case_title');
+
     res.json({
       success: true,
-      message: 'Case accepted successfully',
-      data: caseData
+      count: hearings.length,
+      data: hearings
     });
   } catch (error) {
-    console.error('Accept case error:', error);
+    console.error('Get my hearings error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to accept case',
+      message: 'Failed to fetch hearings',
       error: error.message
     });
   }

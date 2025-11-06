@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 
+import CasesByMonthChart from '../../components/charts/CasesByMonthChart';
+import CaseStatusPieChart from '../../components/charts/CaseStatusPieChart';
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -20,6 +23,7 @@ const AdminDashboard = () => {
   });
   const [recentCases, setRecentCases] = useState([]);
   const [recentRequests, setRecentRequests] = useState([]);
+  const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,15 +32,17 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [usersRes, casesRes, requestsRes] = await Promise.all([
+      const [usersRes, casesRes, requestsRes, statsRes] = await Promise.all([
         api.get('/users'),
         api.get('/cases'),
-        api.get('/case-requests')
+        api.get('/case-requests'),
+        api.get('/api/stats/admin')
       ]);
 
       const users = usersRes.data.data;
       const cases = casesRes.data.data;
       const requests = requestsRes.data.data;
+      const chartStats = statsRes.data.data;
 
       setStats({
         totalUsers: users.length,
@@ -49,6 +55,7 @@ const AdminDashboard = () => {
 
       setRecentCases(cases.slice(0, 5));
       setRecentRequests(requests.slice(0, 5));
+      setChartData(chartStats);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -213,6 +220,26 @@ const AdminDashboard = () => {
           />
         </div>
       </div>
+
+      {/* Analytics Section */}
+      {chartData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-xl shadow-lg p-6" style={{ backgroundColor: '#f5f1ed' }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center" style={{ color: '#1f2937' }}>
+              <BarChart3 className="h-5 w-5 mr-2" style={{ color: '#867969' }} />
+              Cases By Month
+            </h2>
+            <CasesByMonthChart data={chartData.casesByMonth} />
+          </div>
+          <div className="rounded-xl shadow-lg p-6" style={{ backgroundColor: '#f5f1ed' }}>
+            <h2 className="text-xl font-semibold mb-4 flex items-center" style={{ color: '#1f2937' }}>
+              <PieChart className="h-5 w-5 mr-2" style={{ color: '#867969' }} />
+              Case Status Distribution
+            </h2>
+            <CaseStatusPieChart data={chartData.caseStatusDistribution} />
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

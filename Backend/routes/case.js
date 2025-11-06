@@ -9,8 +9,8 @@ const {
   deleteCase,
   uploadDocument,
   scheduleHearing,
-  assignStaff
- 
+  assignStaff,
+  getMyHearings
 } = require('../controllers/caseController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -18,6 +18,8 @@ const upload = require('../middleware/upload');
 
 // ✅ Get all cases (with role-based filtering)
 router.get('/', protect, getCases);
+
+router.get('/hearings/my', protect, authorize('staff', 'client'), getMyHearings);
 
 // ✅ Create case (admin only)
 router.post(

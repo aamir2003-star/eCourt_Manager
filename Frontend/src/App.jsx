@@ -44,6 +44,8 @@ import Feedback from './pages/client/Feedback';
 import RequestCase from './pages/client/RequestCase';
 import MyCaseRequests from './pages/client/MyCaseRequests';
 
+import MyCalendar from './pages/MyCalendar';
+
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -252,6 +254,17 @@ function App() {
                 }
               />
 
+              <Route
+                path="/staff/calendar"
+                element={
+                  <ProtectedRoute allowedRoles={['staff']}>
+                    <DashboardLayout>
+                      <MyCalendar />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Client Routes */}
               <Route
                 path="/client/dashboard"
@@ -319,6 +332,17 @@ function App() {
                   <ProtectedRoute allowedRoles={['client']}>
                     <DashboardLayout>
                       <Feedback />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/client/calendar"
+                element={
+                  <ProtectedRoute allowedRoles={['client']}>
+                    <DashboardLayout>
+                      <MyCalendar />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

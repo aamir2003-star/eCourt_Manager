@@ -331,6 +331,7 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/inquiries', require('./routes/inquiry'));
 app.use('/api/locations', require('./routes/location'));
 app.use('/api/case-requests', require('./routes/caseRequest'));
+app.use('/api/stats', require('./routes/stats'));
 app.use('/api/notifications', require('./routes/notification'));
 
 app.get('/api/health', (req, res) => {
